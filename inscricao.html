@@ -6,6 +6,44 @@
     <title>Segue-Me | Ficha de Inscrição</title>
     <link rel="stylesheet" href="styleinscricao.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        .topo-flex {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+        .dados-bloco-topo {
+            flex: 1;
+        }
+        /* Organiza a foto 3x4 de forma segura lado a lado sem quebras */
+        .form-container .foto-3x4-container {
+            position: relative !important;
+            top: unset !important;
+            right: unset !important;
+            margin-bottom: 0px;
+            flex-shrink: 0;
+        }
+        .foto-box {
+            width: 113px;
+            height: 151px;
+            border: 2px dashed #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+            background: #fafafa;
+            border-radius: 6px;
+        }
+
+        /* Evita cortes feios dentro dos blocos de conteúdo */
+        .section-title, .consentimento-box, .assinatura-container {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+    </style>
 </head>
 <body>
 
@@ -17,33 +55,38 @@
         </div>
 
         <form id="form-inscricao">
-            <div class="foto-3x4-container">
-                <div class="foto-box" onclick="document.getElementById('input-foto').click()">
-                    <span id="label-foto">Foto 3x4</span>
-                    <img id="preview-foto" src="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
-                </div>
-                <input type="file" id="input-foto" accept="image/*" style="display:none" onchange="previewImage(event)">
-            </div>
-
+            
             <div class="section-title">1. Dados Pessoais</div>
             
-            <div class="input-group full">
-                <label for="nome-cand">Nome Completo</label>
-                <input type="text" id="nome-cand" required>
+            <div class="topo-flex">
+                <div class="dados-bloco-topo">
+                    <div class="input-group full">
+                        <label for="nome-cand">Nome Completo</label>
+                        <input type="text" id="nome-cand" required>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="nasc-cand">Data de Nascimento</label>
+                            <input type="date" id="nasc-cand" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="apelido-cand">Como gosta de ser chamado?</label>
+                            <input type="text" id="apelido-cand">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="foto-3x4-container">
+                    <div class="foto-box" onclick="document.getElementById('input-foto').click()">
+                        <span id="label-foto">Foto 3x4</span>
+                        <img id="preview-foto" src="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
+                    </div>
+                    <input type="file" id="input-foto" accept="image/*" style="display:none" onchange="previewImage(event)">
+                </div>
             </div>
 
-            <div class="input-row">
-                <div class="input-group">
-                    <label for="nasc-cand">Data de Nascimento</label>
-                    <input type="date" id="nasc-cand" required>
-                </div>
-                <div class="input-group">
-                    <label for="apelido-cand">Como gosta de ser chamado?</label>
-                    <input type="text" id="apelido-cand">
-                </div>
-            </div>
-
-            <div class="input-row">
+            <div class="input-row" style="margin-top: 10px;">
                 <div class="input-group">
                     <label for="whats-cand">WhatsApp</label>
                     <input type="tel" id="whats-cand" placeholder="(00) 00000-0000" required>
@@ -96,6 +139,8 @@
                 <label><input type="checkbox" id="sacr-cri"> Crisma</label>
             </div>
 
+            <div class="html2pdf__page-break"></div>
+
             <div class="section-title">4. Quem te Convidou?</div>
             <div class="input-row">
                 <div class="input-group">
@@ -121,7 +166,7 @@
             </div>
             
             <br>
-            <button type="submit" style="width: 100%; padding: 14px; background: #d4af37; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer;">Enviar Ficha Eletronicamente</button>
+            <button type="submit" id="btn-enviar-formulario" style="width: 100%; padding: 14px; background: #d4af37; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer;">Enviar Ficha Eletronicamente e Salvar Dados</button>
         </form>
     </div>
 
@@ -130,28 +175,68 @@
     </div>
 
     <script>
+        let imagemBase64 = "";
+
         function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
             const reader = new FileReader();
             reader.onload = function() {
+                imagemBase64 = reader.result;
                 const output = document.getElementById('preview-foto');
                 const label = document.getElementById('label-foto');
                 output.src = reader.result;
                 output.style.display = 'block';
                 label.style.display = 'none';
             }
-            reader.readAsDataURL(event.target.files[0]);
+            reader.readAsDataURL(file);
         }
 
         function gerarPDF() {
             const element = document.getElementById('conteudo-ficha');
+            const nomeCand = document.getElementById('nome-cand').value || "Inscricao_SegueMe";
+            
+            const btnEnviar = document.getElementById('btn-enviar-formulario');
+            const containerAbasBotao = document.querySelector('.button-container');
+
+            const estiloOriginalContainer = element.style.cssText;
+            
+            element.style.boxShadow = "none";
+            element.style.borderRadius = "0px";
+            element.style.height = "auto";
+            element.style.maxHeight = "none";
+            element.style.overflow = "visible";
+            element.style.padding = "10px";
+
+            if (btnEnviar) btnEnviar.style.display = "none";
+            if (containerAbasBotao) containerAbasBotao.style.display = "none";
+
             const opt = {
-                margin: 10,
-                filename: 'Ficha_Inscricao_SegueMe.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                margin:       [15, 15, 15, 15], 
+                filename:     `Ficha_${nomeCand.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: false,
+                    scrollY: 0
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                // Ativa o reconhecimento de quebras manuais por classes específicas da biblioteca
+                pagebreak:    { mode: ['before', 'css', 'legacy'], before: '.html2pdf__page-break' }
             };
-            html2pdf().set(opt).from(element).save();
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.cssText = estiloOriginalContainer;
+                if (btnEnviar) btnEnviar.style.display = "block";
+                if (containerAbasBotao) containerAbasBotao.style.display = "block";
+            }).catch((err) => {
+                console.error("Erro na conversão: ", err);
+                element.style.cssText = estiloOriginalContainer;
+                if (btnEnviar) btnEnviar.style.display = "block";
+                if (containerAbasBotao) containerAbasBotao.style.display = "block";
+            });
         }
     </script>
 
@@ -161,6 +246,14 @@
         document.getElementById('form-inscricao').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            const btnForm = document.getElementById('btn-enviar-formulario');
+            if (btnForm) {
+                btnForm.disabled = true;
+                btnForm.innerText = "Processando Envio...";
+            }
+
+            const fotoEnvio = window.imagemBase64 || "";
+
             const inscricaoNovoJovem = {
                 nome_candidato: document.getElementById('nome-cand').value,
                 data_nascimento: document.getElementById('nasc-cand').value,
@@ -169,6 +262,7 @@
                 email: document.getElementById('email-cand').value,
                 endereco: document.getElementById('end-cand').value,
                 numero: document.getElementById('num-cand').value,
+                foto_jovem_3x4: fotoEnvio,
                 filiacao: {
                     pai: document.getElementById('pai-cand').value,
                     telefone_pai: document.getElementById('tel-pai').value,
@@ -191,9 +285,15 @@
             try {
                 await addDoc(collection(db, "inscricoes_novos_jovens"), inscricaoNovoJovem);
                 alert("Sua Ficha de Inscrição foi enviada com sucesso para a coordenação do Segue-Me!");
+                window.location.reload();
             } catch (error) {
                 console.error("Erro ao enviar inscrição: ", error);
                 alert("Erro ao salvar inscrição no servidor do Google.");
+            } finally {
+                if (btnForm) {
+                    btnForm.disabled = false;
+                    btnForm.innerText = "Enviar Ficha Eletronicamente";
+                }
             }
         });
     </script>
